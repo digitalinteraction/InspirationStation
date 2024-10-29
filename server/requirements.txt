@@ -1,5 +1,6 @@
-cherrypy
-jinja2
-psycopg2
-qrcode
-pyjwt
+CherryPy==18.8.0
+Jinja2==3.1.2
+psycopg2==2.9.6
+qrcode==7.4.2
+PyJWT==2.7.0
+pillow==11.0.0

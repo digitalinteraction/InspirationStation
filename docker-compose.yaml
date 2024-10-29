@@ -9,59 +9,83 @@
 # chmod 600 acme.json
 #
 
-version: '3.3'
+# version: '3.3'
 
-networks:
-  traefik:
+# networks:
+#   traefik:
 
-services:
-    init:
-        image: python:3.10
-        volumes:
-            - pip-volume:/usr/local/lib/python3.10/site-packages
-            - ./server:/server
-        working_dir: /server
-        command: pip install -r requirements.txt
+# services:
+#     init:
+#         image: python:3.10
+#         volumes:
+#             - pip-volume:/usr/local/lib/python3.10/site-packages
+#             - ./server:/server
+#         working_dir: /server
+#         command: pip install -r requirements.txt
 
-    traefik:
-        image: traefik:v2.2
-        restart: unless-stopped
-        container_name: traefik
-        networks:
-            - traefik
-        ports:
-            - "80:80"
-            - "443:443"
-        volumes:
-            - "./traefik.toml:/traefik.toml"
-            - "./acme.json:/acme.json"
-            - "./usersfile:/usersfile"
-            - "/var/run/docker.sock:/var/run/docker.sock:ro"
-        labels:
-            - "traefik.http.middlewares.csrfHeader.headers.customrequestheaders.X-Forwarded-Proto=https"
-            - "traefik.http.middlewares.csrfHeader.headers.customrequestheaders.X-Forwarded-Port=443"
-            - "traefik.http.middlewares.csrfHeader.headers.customrequestheaders.X-Forwarded-Ssl=on"
+#     traefik:
+#         image: traefik:v2.2
+#         restart: unless-stopped
+#         container_name: traefik
+#         networks:
+#             - traefik
+#         ports:
+#             - "80:80"
+#             - "443:443"
+#         volumes:
+#             - "./traefik.toml:/traefik.toml"
+#             - "./acme.json:/acme.json"
+#             - "./usersfile:/usersfile"
+#             - "/var/run/docker.sock:/var/run/docker.sock:ro"
+#         labels:
+#             - "traefik.http.middlewares.csrfHeader.headers.customrequestheaders.X-Forwarded-Proto=https"
+#             - "traefik.http.middlewares.csrfHeader.headers.customrequestheaders.X-Forwarded-Port=443"
+#             - "traefik.http.middlewares.csrfHeader.headers.customrequestheaders.X-Forwarded-Ssl=on"
 
-    cherrypy:
-        image: python:3.10
-        restart: always
-        volumes:
-            - pip-volume:/usr/local/lib/python3.10/site-packages
-            - ./server:/server
-        working_dir: /server
-        command: python3 inspire.py
-        depends_on:
-            init:
-                condition: service_completed_successfully
-        networks:
-            - traefik
-        labels:
-            - "traefik.enable=true"
-            - "traefik.http.routers.cherrypy.rule=Host(`inspire.storyweb.info`)"
-            - "traefik.http.routers.cherrypy.entrypoints=websecure"
-            - "traefik.http.routers.cherrypy.tls=true"
-            - "traefik.http.routers.cherrypy.tls.certresolver=leresolver"
-            - "traefik.http.services.cherrypy.loadbalancer.server.port=8080"
+#     cherrypy:
+#         image: python:3.10
+#         restart: always
+#         volumes:
+#             - pip-volume:/usr/local/lib/python3.10/site-packages
+#             - ./server:/server
+#         working_dir: /server
+#         command: python3 inspire.py
+#         depends_on:
+#             init:
+#                 condition: service_completed_successfully
+#         networks:
+#             - traefik
+#         labels:
+#             - "traefik.enable=true"
+#             - "traefik.http.routers.cherrypy.rule=Host(`inspire.storyweb.info`)"
+#             - "traefik.http.routers.cherrypy.entrypoints=websecure"
+#             - "traefik.http.routers.cherrypy.tls=true"
+#             - "traefik.http.routers.cherrypy.tls.certresolver=leresolver"
+#             - "traefik.http.services.cherrypy.loadbalancer.server.port=8080"
+
+# volumes:
+#     pip-volume:
 
 volumes:
-    pip-volume:
+  pg-data:
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - 127.0.0.1:5432:5432
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: user
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - ./server/config.json:/app/config.json
+      - ./server/static:/app/static
